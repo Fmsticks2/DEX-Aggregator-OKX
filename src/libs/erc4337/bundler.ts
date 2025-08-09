@@ -268,7 +268,7 @@ export class SmartAccountBundler {
   /**
    * Get user operation nonce
    */
-  private async getUserOpNonce(sender: string): Promise<number> {
+  private async getUserOpNonce(_sender: string): Promise<number> {
     // This would query the EntryPoint contract for the nonce
     // For now, return a mock nonce
     return Math.floor(Math.random() * 1000000)

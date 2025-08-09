@@ -99,13 +99,15 @@ export async function getOKXQuote(args: OKXQuoteArgs): Promise<TokenQuote> {
         address: data.fromToken.tokenContractAddress,
         symbol: data.fromToken.tokenSymbol,
         decimals: 18, // Default, should be fetched from token contract
-        name: data.fromToken.tokenSymbol
+        name: data.fromToken.tokenSymbol,
+        chainId: args.chainId
       },
       toToken: {
         address: data.toToken.tokenContractAddress,
         symbol: data.toToken.tokenSymbol,
         decimals: 18, // Default, should be fetched from token contract
-        name: data.toToken.tokenSymbol
+        name: data.toToken.tokenSymbol,
+        chainId: args.chainId
       },
       fromAmount: data.fromTokenAmount,
       toAmount: data.toTokenAmount,

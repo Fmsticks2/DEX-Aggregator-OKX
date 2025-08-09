@@ -139,7 +139,7 @@ export class BundleTracker extends EventEmitter {
   }
 
   // Add MEV savings data
-  addMEVSavings(amount: number, currency = 'USD'): void {
+  addMEVSavings(amount: number, _currency = 'USD'): void {
     const currentSavings = this.getTotalMEVSavings()
     const newTotal = currentSavings + amount
     

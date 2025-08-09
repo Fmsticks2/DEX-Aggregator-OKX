@@ -75,13 +75,15 @@ export async function get0xQuote(args: ZeroXQuoteArgs, chainId: number = 1): Pro
         address: data.sellTokenAddress,
         symbol: '', // Would need to fetch from token contract
         decimals: 18,
-        name: ''
+        name: '',
+        chainId
       },
       toToken: {
         address: data.buyTokenAddress,
         symbol: '', // Would need to fetch from token contract
         decimals: 18,
-        name: ''
+        name: '',
+        chainId
       },
       fromAmount: data.sellAmount,
       toAmount: data.buyAmount,

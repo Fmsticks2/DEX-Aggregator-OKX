@@ -164,9 +164,9 @@ export const DEFAULT_GAS_LIMITS = {
 
 // Utility functions
 export function getUserOperationHash(
-  userOp: Partial<UserOperation>,
-  entryPoint: string,
-  chainId: number
+  _userOp: Partial<UserOperation>,
+  _entryPoint: string,
+  _chainId: number
 ): string {
   // This would implement the actual hash calculation
   // For now, return a placeholder

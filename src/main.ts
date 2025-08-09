@@ -30,8 +30,7 @@ class App {
     this.uiManager = new UIManager(
       this.walletManager,
       this.dexAggregator,
-      this.notificationManager,
-      this.bundleTracker
+      this.notificationManager
     )
   }
 

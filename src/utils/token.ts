@@ -16,7 +16,8 @@ const ERC20_ABI = [
 export async function getBalance(
   tokenAddress: string,
   userAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  chainId: number = 1
 ): Promise<TokenBalance> {
   try {
     if (tokenAddress === ethers.ZeroAddress || tokenAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
@@ -27,7 +28,8 @@ export async function getBalance(
           address: ethers.ZeroAddress,
           symbol: 'ETH',
           decimals: 18,
-          name: 'Ethereum'
+          name: 'Ethereum',
+          chainId
         },
         balance: balance.toString(),
         formattedBalance: ethers.formatEther(balance)
@@ -48,7 +50,8 @@ export async function getBalance(
           address: tokenAddress,
           symbol,
           decimals,
-          name
+          name,
+          chainId
         },
         balance: balance.toString(),
         formattedBalance: ethers.formatUnits(balance, decimals)
@@ -113,7 +116,8 @@ export async function checkAllowance(
  */
 export async function getTokenInfo(
   tokenAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  chainId: number = 1
 ): Promise<Token> {
   try {
     if (tokenAddress === ethers.ZeroAddress || tokenAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
@@ -121,7 +125,8 @@ export async function getTokenInfo(
         address: ethers.ZeroAddress,
         symbol: 'ETH',
         decimals: 18,
-        name: 'Ethereum'
+        name: 'Ethereum',
+        chainId
       }
     }
 
@@ -137,7 +142,8 @@ export async function getTokenInfo(
       address: tokenAddress,
       symbol,
       decimals,
-      name
+      name,
+      chainId
     }
   } catch (error) {
     console.error('Error getting token info:', error)

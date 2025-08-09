@@ -29,8 +29,8 @@ export interface TokenList {
 
 export interface TokenBalance {
   token: Token
-  balance: string
-  balanceFormatted: string
+  balance: string // Raw balance in wei/smallest unit
+  formattedBalance: string // Human-readable balance
   valueUSD?: number
 }
 

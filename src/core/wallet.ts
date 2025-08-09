@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 import { EventEmitter } from 'events'
+import { SUPPORTED_CHAINS, ChainConfig } from '../config/chains'
 
 export interface WalletState {
   isConnected: boolean
@@ -22,41 +23,7 @@ export interface SupportedChain {
   }
 }
 
-export const SUPPORTED_CHAINS: Record<number, SupportedChain> = {
-  1: {
-    id: 1,
-    name: 'Ethereum',
-    rpcUrl: 'https://eth.llamarpc.com',
-    blockExplorer: 'https://etherscan.io',
-    nativeCurrency: {
-      name: 'Ether',
-      symbol: 'ETH',
-      decimals: 18
-    }
-  },
-  137: {
-    id: 137,
-    name: 'Polygon',
-    rpcUrl: 'https://polygon.llamarpc.com',
-    blockExplorer: 'https://polygonscan.com',
-    nativeCurrency: {
-      name: 'MATIC',
-      symbol: 'MATIC',
-      decimals: 18
-    }
-  },
-  56: {
-    id: 56,
-    name: 'BSC',
-    rpcUrl: 'https://bsc.llamarpc.com',
-    blockExplorer: 'https://bscscan.com',
-    nativeCurrency: {
-      name: 'BNB',
-      symbol: 'BNB',
-      decimals: 18
-    }
-  }
-}
+// SUPPORTED_CHAINS is imported from '../config/chains'
 
 /**
  * Wallet Manager using pure ethers.js
@@ -196,13 +163,17 @@ export class WalletManager extends EventEmitter {
     }
   }
 
-  private async addNetwork(chain: SupportedChain): Promise<void> {
+  private async addNetwork(chain: ChainConfig): Promise<void> {
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
       params: [{
         chainId: `0x${chain.id.toString(16)}`,
         chainName: chain.name,
-        nativeCurrency: chain.nativeCurrency,
+        nativeCurrency: {
+          name: chain.symbol,
+          symbol: chain.symbol,
+          decimals: chain.decimals
+        },
         rpcUrls: [chain.rpcUrl],
         blockExplorerUrls: [chain.blockExplorer]
       }]

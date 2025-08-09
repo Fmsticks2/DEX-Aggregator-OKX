@@ -1,9 +1,9 @@
-import { WalletManager, SUPPORTED_CHAINS } from '../core/wallet'
+import { WalletManager } from '../core/wallet'
 import { DEXAggregator, type SwapParams } from '../core/dex'
 import { NotificationManager } from './notifications'
-import { BundleTracker } from './bundle-tracker'
 import type { Token } from '../libs/token/types'
-import debounce from 'debounce'
+import { SUPPORTED_CHAINS } from '../config/chains'
+import { debounce } from '../utils/debounce'
 
 /**
  * UI Manager
@@ -13,7 +13,6 @@ export class UIManager {
   private walletManager: WalletManager
   private dexAggregator: DEXAggregator
   private notificationManager: NotificationManager
-  private bundleTracker: BundleTracker
   
   private selectedFromToken: Token | null = null
   private selectedToToken: Token | null = null
@@ -28,13 +27,11 @@ export class UIManager {
   constructor(
     walletManager: WalletManager,
     dexAggregator: DEXAggregator,
-    notificationManager: NotificationManager,
-    bundleTracker: BundleTracker
+    notificationManager: NotificationManager
   ) {
     this.walletManager = walletManager
     this.dexAggregator = dexAggregator
     this.notificationManager = notificationManager
-    this.bundleTracker = bundleTracker
   }
 
   initialize(): void {
@@ -454,8 +451,7 @@ export class UIManager {
   private async loadTokenBalances(): Promise<void> {
     if (!this.walletManager.isConnected()) return
 
-    // Update native token balance
-    const walletState = this.walletManager.getState()
+    // Update token balances
     const fromBalance = this.elements['from-balance']
     const toBalance = this.elements['to-balance']
 
