@@ -1,12 +1,11 @@
 import { ethers } from 'ethers'
-import { EventEmitter } from 'events'
+import axios from 'axios'
 import { WalletManager } from './wallet'
-import { SmartAccountBundler, getBundler, initializeBundler } from '../libs/erc4337/bundler'
-import { getOKXQuote, getOKXSwap } from '../libs/api/okx-dex'
-import type { OKXQuoteArgs, OKXSwapArgs } from '../libs/api/types'
-import { approveAllowance } from '../libs/token/approveAllowance'
-import { fetchAllTokens } from '../libs/token/fetchAllTokens'
-import type { Token, ERC20Token } from '../libs/token/types'
+import { NotificationManager } from '../ui/notifications'
+import { BundleTracker } from '../ui/bundle-tracker'
+import { SmartAccountBundler } from '../libs/erc4337/bundler'
+import { Token, TokenQuote, TokenBalance } from '../libs/token/types'
+import { UserOperation, SwapIntent } from '../libs/erc4337/types'
 
 export interface SwapParams {
   fromToken: Token

@@ -1,10 +1,10 @@
-import './styles/main.css'
+import './main.css'
 import { WalletManager } from './core/wallet'
 import { DEXAggregator } from './core/dex'
 import { UIManager } from './ui/manager'
 import { NotificationManager } from './ui/notifications'
 import { BundleTracker } from './ui/bundle-tracker'
-import { ThemeManager } from './ui/theme'
+import { ThemeManager } from './ui/theme-manager'
 
 /**
  * Main application entry point

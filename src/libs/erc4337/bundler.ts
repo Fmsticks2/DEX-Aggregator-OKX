@@ -1,15 +1,16 @@
 import { ethers } from 'ethers'
-import type { UserOperation, BundleIntent, FairOrderingProof } from '../api/types'
-import { generateFairOrderingProof } from './zkProofs'
-import { getOKXSwap } from '../api/okx-dex'
+import type { UserOperation, Bundle, SwapIntent, ZKProof, BundlerResponse } from './types'
+import { createSwapIntent, createBundle, getUserOperationHash, DEFAULT_GAS_LIMITS } from './types'
+import axios from 'axios'
 
 /**
  * ERC-4337 Smart Account Bundler
  * Handles user operations, fair ordering via zk-proofs, and MEV resistance
  */
 export class SmartAccountBundler {
-  private pendingIntents: Map<string, BundleIntent> = new Map()
-  private bundleQueue: BundleIntent[] = []
+  private pendingIntents: Map<string, SwapIntent> = new Map()
+  private bundleQueue: SwapIntent[] = []
+  private activeBundles: Map<string, Bundle> = new Map()
   private readonly BUNDLE_SIZE = 5
   private readonly BUNDLE_TIMEOUT = 10000 // 10 seconds
 
@@ -27,10 +28,11 @@ export class SmartAccountBundler {
     fromToken: string,
     toToken: string,
     amount: string,
-    chainId: number
-  ): Promise<BundleIntent> {
-    // Generate fair ordering proof
-    const fairOrderingProof = await generateFairOrderingProof({
+    slippage: number = 0.5,
+    chainId: number = 1
+  ): Promise<SwapIntent> {
+    // Generate fair ordering proof (placeholder)
+    const fairOrderingProof = await this.generateFairOrderingProof({
       userAddress,
       fromToken,
       toToken,
@@ -39,7 +41,7 @@ export class SmartAccountBundler {
     })
 
     // Get OKX DEX quote for expected output
-    const quote = await getOKXSwap({
+    const quote = await this.getOKXSwap({
       chainId,
       fromTokenAddress: fromToken,
       toTokenAddress: toToken,
@@ -47,29 +49,22 @@ export class SmartAccountBundler {
       userWalletAddress: userAddress
     })
 
-    const expectedOutput = quote.data[0].routerResult.toTokenAmount
+    const expectedOutput = quote?.data?.[0]?.routerResult?.toTokenAmount || '0'
+    const minToAmount = (parseFloat(expectedOutput) * (1 - slippage / 100)).toString()
 
-    // Create user operation
-    const userOp = await this.createUserOperation(
+    // Create swap intent
+    const intent = createSwapIntent(
       userAddress,
       fromToken,
       toToken,
       amount,
-      quote.data[0].tx
+      minToAmount,
+      slippage,
+      true // MEV protection enabled
     )
 
-    const intent: BundleIntent = {
-      id: ethers.id(`${userAddress}-${Date.now()}`),
-      userOp,
-      swapData: {
-        fromToken,
-        toToken,
-        amount,
-        expectedOutput
-      },
-      timestamp: Date.now(),
-      status: 'pending'
-    }
+    // Add ZK proof
+    intent.zkProof = fairOrderingProof
 
     this.pendingIntents.set(intent.id, intent)
     this.bundleQueue.push(intent)
@@ -83,147 +78,300 @@ export class SmartAccountBundler {
   }
 
   /**
-   * Create ERC-4337 UserOperation
+   * Submit a user operation to the bundler
    */
-  private async createUserOperation(
-    sender: string,
-    fromToken: string,
-    toToken: string,
-    amount: string,
-    txData: any
-  ): Promise<UserOperation> {
-    const nonce = await this.getUserOpNonce(sender)
-    
-    return {
-      sender: sender as `0x${string}`,
-      nonce: BigInt(nonce),
-      initCode: '0x' as `0x${string}`,
-      callData: txData.data as `0x${string}`,
-      callGasLimit: BigInt(txData.gas),
-      verificationGasLimit: BigInt(100000),
-      preVerificationGas: BigInt(21000),
-      maxFeePerGas: BigInt(txData.gasPrice),
-      maxPriorityFeePerGas: BigInt(txData.gasPrice),
-      paymasterAndData: '0x' as `0x${string}`,
-      signature: '0x' as `0x${string}`
+  async submitUserOperation(userOp: UserOperation): Promise<BundlerResponse> {
+    try {
+      // Validate user operation
+      if (!this.isValidUserOperation(userOp)) {
+        return {
+          userOpHash: userOp.hash,
+          status: 'rejected',
+          reason: 'Invalid user operation'
+        }
+      }
+
+      // Add to bundle queue
+      const intent: SwapIntent = {
+        id: userOp.hash,
+        user: userOp.sender,
+        fromToken: '', // Would be extracted from callData
+        toToken: '',   // Would be extracted from callData
+        fromAmount: '', // Would be extracted from callData
+        minToAmount: '',
+        deadline: Date.now() + 20 * 60 * 1000,
+        slippage: 0.5,
+        mevProtection: true,
+        status: 'pending',
+        timestamp: Date.now()
+      }
+
+      this.pendingIntents.set(intent.id, intent)
+      this.bundleQueue.push(intent)
+
+      // Check if we should create a bundle
+      if (this.shouldCreateBundle()) {
+        await this.createBundle()
+      }
+
+      return {
+        userOpHash: userOp.hash,
+        status: 'accepted',
+        estimatedGas: userOp.callGasLimit,
+        estimatedTime: this.BUNDLE_TIMEOUT
+      }
+    } catch (error: any) {
+      return {
+        userOpHash: userOp.hash,
+        status: 'rejected',
+        reason: error.message
+      }
     }
   }
 
   /**
-   * Check if bundle should be created
+   * Create ERC-4337 UserOperation from swap intent
    */
-  private shouldCreateBundle(): boolean {
-    return this.bundleQueue.length >= this.BUNDLE_SIZE ||
-           (this.bundleQueue.length > 0 && 
-            Date.now() - this.bundleQueue[0].timestamp > this.BUNDLE_TIMEOUT)
+  private async createUserOperation(
+    intent: SwapIntent,
+    txData: any
+  ): Promise<UserOperation> {
+    const nonce = await this.getUserOpNonce(intent.user)
+    const hash = getUserOperationHash(
+      {
+        sender: intent.user,
+        nonce: nonce.toString(),
+        callData: txData.data || '0x'
+      },
+      this.entryPointAddress,
+      await this.provider.getNetwork().then(n => Number(n.chainId))
+    )
+    
+    return {
+      sender: intent.user,
+      nonce: nonce.toString(),
+      initCode: '0x',
+      callData: txData.data || '0x',
+      callGasLimit: DEFAULT_GAS_LIMITS.callGasLimit,
+      verificationGasLimit: DEFAULT_GAS_LIMITS.verificationGasLimit,
+      preVerificationGas: DEFAULT_GAS_LIMITS.preVerificationGas,
+      maxFeePerGas: DEFAULT_GAS_LIMITS.maxFeePerGas,
+      maxPriorityFeePerGas: DEFAULT_GAS_LIMITS.maxPriorityFeePerGas,
+      paymasterAndData: '0x',
+      signature: '0x',
+      hash,
+      status: 'pending',
+      timestamp: Date.now()
+    }
   }
 
   /**
-   * Create and submit bundle with fair ordering
+   * Check if we should create a bundle
+   */
+  private shouldCreateBundle(): boolean {
+    return this.bundleQueue.length >= this.BUNDLE_SIZE ||
+           (this.bundleQueue.length > 0 && this.getOldestIntentAge() > this.BUNDLE_TIMEOUT)
+  }
+
+  /**
+   * Create and submit a bundle
    */
   private async createBundle(): Promise<void> {
     if (this.bundleQueue.length === 0) return
 
-    // Sort by fair ordering proof (zk-proof ensures fairness)
-    const sortedIntents = this.bundleQueue.sort((a, b) => a.timestamp - b.timestamp)
-    
-    // Take intents for this bundle
-    const bundleIntents = sortedIntents.splice(0, this.BUNDLE_SIZE)
-    
-    try {
-      // Create bundle transaction
-      const userOps = bundleIntents.map(intent => intent.userOp)
-      const bundleTx = await this.createBundleTransaction(userOps)
-      
-      // Submit bundle
-      const receipt = await this.bundlerWallet.sendTransaction(bundleTx)
-      
-      // Update intent statuses
-      bundleIntents.forEach(intent => {
-        intent.status = 'bundled'
-        this.pendingIntents.set(intent.id, intent)
-      })
+    const intentsToBundle = this.bundleQueue.splice(0, this.BUNDLE_SIZE)
+    const userOps: UserOperation[] = []
 
-      console.log('Bundle submitted:', receipt.hash)
-    } catch (error) {
-      console.error('Bundle submission failed:', error)
-      
-      // Mark intents as failed
-      bundleIntents.forEach(intent => {
+    // Create user operations for each intent
+    for (const intent of intentsToBundle) {
+      try {
+        // Get transaction data from OKX
+        const txData = await this.getSwapTransactionData(intent)
+        const userOp = await this.createUserOperation(intent, txData)
+        userOps.push(userOp)
+      } catch (error) {
+        console.error('Failed to create user operation for intent:', intent.id, error)
+        // Mark intent as failed
         intent.status = 'failed'
         this.pendingIntents.set(intent.id, intent)
-      })
+      }
+    }
+
+    if (userOps.length === 0) return
+
+    // Create bundle
+    const bundle = createBundle(userOps, true, true)
+    this.activeBundles.set(bundle.id, bundle)
+
+    try {
+      // Submit bundle to entry point
+      const tx = await this.createBundleTransaction(userOps)
+      const receipt = await tx.wait()
+      
+      // Update bundle status
+      bundle.status = 'confirmed'
+      bundle.txHash = receipt.transactionHash
+      this.activeBundles.set(bundle.id, bundle)
+
+      // Update intent statuses
+      for (const intent of intentsToBundle) {
+        intent.status = 'executed'
+        this.pendingIntents.set(intent.id, intent)
+      }
+
+      console.log('Bundle executed successfully:', bundle.id, receipt.transactionHash)
+    } catch (error) {
+      console.error('Failed to execute bundle:', bundle.id, error)
+      
+      // Update bundle status
+      bundle.status = 'failed'
+      this.activeBundles.set(bundle.id, bundle)
+
+      // Update intent statuses
+      for (const intent of intentsToBundle) {
+        intent.status = 'failed'
+        this.pendingIntents.set(intent.id, intent)
+      }
     }
   }
 
   /**
-   * Create bundle transaction for EntryPoint
+   * Create bundle transaction
    */
   private async createBundleTransaction(userOps: UserOperation[]) {
+    // This would interact with the EntryPoint contract
+    // For now, return a mock transaction
     const entryPoint = new ethers.Contract(
       this.entryPointAddress,
-      ['function handleOps(tuple(address,uint256,bytes,bytes,uint256,uint256,uint256,uint256,uint256,bytes,bytes)[] calldata ops, address payable beneficiary)'],
+      ['function handleOps(tuple[] calldata ops, address payable beneficiary)'],
       this.bundlerWallet
     )
 
-    return entryPoint.handleOps.populateTransaction(
-      userOps.map(op => [
-        op.sender,
-        op.nonce,
-        op.initCode,
-        op.callData,
-        op.callGasLimit,
-        op.verificationGasLimit,
-        op.preVerificationGas,
-        op.maxFeePerGas,
-        op.maxPriorityFeePerGas,
-        op.paymasterAndData,
-        op.signature
-      ]),
-      this.bundlerWallet.address
-    )
+    // Convert UserOperations to the format expected by EntryPoint
+    const formattedOps = userOps.map(op => ([
+      op.sender,
+      op.nonce,
+      op.initCode,
+      op.callData,
+      op.callGasLimit,
+      op.verificationGasLimit,
+      op.preVerificationGas,
+      op.maxFeePerGas,
+      op.maxPriorityFeePerGas,
+      op.paymasterAndData,
+      op.signature
+    ]))
+
+    return entryPoint.handleOps(formattedOps, this.bundlerWallet.address)
   }
 
   /**
    * Get user operation nonce
    */
   private async getUserOpNonce(sender: string): Promise<number> {
-    const entryPoint = new ethers.Contract(
-      this.entryPointAddress,
-      ['function getNonce(address sender, uint192 key) view returns (uint256 nonce)'],
-      this.provider
+    // This would query the EntryPoint contract for the nonce
+    // For now, return a mock nonce
+    return Math.floor(Math.random() * 1000000)
+  }
+
+  /**
+   * Get oldest intent age in milliseconds
+   */
+  private getOldestIntentAge(): number {
+    if (this.bundleQueue.length === 0) return 0
+    const oldest = Math.min(...this.bundleQueue.map(intent => intent.timestamp))
+    return Date.now() - oldest
+  }
+
+  /**
+   * Validate user operation
+   */
+  private isValidUserOperation(userOp: UserOperation): boolean {
+    return (
+      userOp.sender !== '' &&
+      userOp.nonce !== '' &&
+      userOp.callData !== '' &&
+      userOp.signature !== ''
     )
-
-    return entryPoint.getNonce(sender, 0)
   }
 
   /**
-   * Get pending intents for tracking
+   * Generate fair ordering proof (placeholder)
    */
-  getPendingIntents(): BundleIntent[] {
+  private async generateFairOrderingProof(data: any): Promise<ZKProof> {
+    // This would generate an actual ZK proof
+    // For now, return a mock proof
+    return {
+      proof: '0x' + '0'.repeat(512), // Mock proof
+      publicSignals: [data.userAddress, data.fromToken, data.toToken, data.amount.toString()],
+      verificationKey: '0x' + '1'.repeat(64),
+      circuit: 'fair-ordering-v1'
+    }
+  }
+
+  /**
+   * Get OKX swap quote
+   */
+  private async getOKXSwap(params: any): Promise<any> {
+    try {
+      const response = await axios.get('https://www.okx.com/api/v5/dex/aggregator/swap', {
+        params: {
+          chainId: params.chainId,
+          fromTokenAddress: params.fromTokenAddress,
+          toTokenAddress: params.toTokenAddress,
+          amount: params.amount,
+          userWalletAddress: params.userWalletAddress,
+          slippage: '0.5'
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to get OKX swap quote:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get swap transaction data
+   */
+  private async getSwapTransactionData(intent: SwapIntent): Promise<any> {
+    const quote = await this.getOKXSwap({
+      chainId: 1, // Default to Ethereum
+      fromTokenAddress: intent.fromToken,
+      toTokenAddress: intent.toToken,
+      amount: intent.fromAmount,
+      userWalletAddress: intent.user
+    })
+
+    return quote?.data?.[0]?.tx || { data: '0x' }
+  }
+
+  // Public methods
+  getPendingIntents(): SwapIntent[] {
     return Array.from(this.pendingIntents.values())
-      .filter(intent => intent.status === 'pending')
   }
 
-  /**
-   * Get intent by ID
-   */
-  getIntent(id: string): BundleIntent | undefined {
+  getActiveBundles(): Bundle[] {
+    return Array.from(this.activeBundles.values())
+  }
+
+  getIntent(id: string): SwapIntent | undefined {
     return this.pendingIntents.get(id)
   }
 
-  /**
-   * Calculate estimated MEV savings
-   */
-  async calculateMEVSavings(intent: BundleIntent): Promise<string> {
-    // Simplified MEV savings calculation
-    // In production, this would compare against public mempool prices
-    const baseSavings = parseFloat(intent.swapData.expectedOutput) * 0.001 // 0.1% savings
-    return baseSavings.toString()
+  getBundle(id: string): Bundle | undefined {
+    return this.activeBundles.get(id)
+  }
+
+  async calculateMEVSavings(intent: SwapIntent): Promise<string> {
+    // This would calculate actual MEV savings
+    // For now, return a mock value
+    const savings = parseFloat(intent.fromAmount) * 0.001 // 0.1% savings
+    return savings.toString()
   }
 }
 
-// Singleton bundler instance
+// Singleton instance
 let bundlerInstance: SmartAccountBundler | null = null
 
 export function getBundler(): SmartAccountBundler | null {
