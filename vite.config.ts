@@ -52,12 +52,6 @@ export default defineConfig({
   
   // CSS configuration
   css: {
-    postcss: {
-      plugins: [
-        require('tailwindcss'),
-        require('autoprefixer')
-      ]
-    },
     devSourcemap: true
   },
   

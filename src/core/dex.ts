@@ -1,18 +1,10 @@
 import { ethers } from 'ethers'
-import { EventEmitter } from 'events'
-import axios from 'axios'
+import { SimpleEventEmitter } from '@/utils/emitter'
 import { WalletManager } from './wallet'
-import { NotificationManager } from '../ui/notifications'
-import { BundleTracker } from '../ui/bundle-tracker'
-import { SmartAccountBundler, getBundler, initializeBundler } from '../libs/erc4337/bundler'
-import { Token, TokenQuote, TokenBalance } from '../libs/token/types'
-import { UserOperation, SwapIntent } from '../libs/erc4337/types'
-import { getBalance, approveAllowance } from '../utils/token'
-import { checkConnected, getConnectedWallet, getPublicClient } from '../utils/wallet'
-import { SUPPORTED_CHAINS } from '../config/chains'
+import { getBundler, initializeBundler } from '../libs/erc4337/bundler'
+import { Token } from '../libs/token/types'
+import { approveAllowance } from '../utils/token'
 import { getOKXQuote, getOKXSwap, OKXSwapArgs, OKXQuoteArgs } from '../api/okx-dex'
-import { get0xQuote } from '../api/0x'
-import { debounce } from '../utils/debounce'
 
 export interface SwapParams {
   fromToken: Token
@@ -39,7 +31,7 @@ export interface SwapResult {
  * DEX Aggregator using ethers.js
  * Handles token swaps, quotes, and smart account integration
  */
-export class DEXAggregator extends EventEmitter {
+export class DEXAggregator extends SimpleEventEmitter {
   private walletManager: WalletManager
   private bundlerInitialized = false
   private availableTokens: Token[] = []
@@ -83,7 +75,7 @@ export class DEXAggregator extends EventEmitter {
   }
 
   async getQuote(params: Omit<SwapParams, 'useSmartAccount'>): Promise<SwapQuote> {
-    const { fromToken, toToken, amount, slippage } = params
+    const { fromToken, toToken, amount } = params
     const chainId = this.walletManager.getChainId()
     const userAddress = this.walletManager.getAddress()
 
@@ -96,19 +88,17 @@ export class DEXAggregator extends EventEmitter {
         chainId,
         fromTokenAddress: fromToken.address || '',
         toTokenAddress: toToken.address || '',
-        amount,
-        userWalletAddress: userAddress
+        amount
       }
 
       const quoteResponse = await getOKXQuote(quoteArgs)
-      const quote = quoteResponse.data[0]
 
       this.currentQuote = {
         fromAmount: amount,
-        toAmount: quote.routerResult.toTokenAmount,
-        estimatedGas: quote.routerResult.estimatedGas || '0',
-        priceImpact: this.calculatePriceImpact(amount, quote.routerResult.toTokenAmount),
-        route: quote.routerResult.subRoutes?.map(r => r.dexName) || []
+        toAmount: quoteResponse.toAmount,
+        estimatedGas: quoteResponse.estimatedGas || '0',
+        priceImpact: this.calculatePriceImpact(amount, quoteResponse.toAmount),
+        route: quoteResponse.route?.map((r: any) => r.protocol) || []
       }
 
       this.emit('quoteUpdated', this.currentQuote)
@@ -120,7 +110,7 @@ export class DEXAggregator extends EventEmitter {
   }
 
   async executeSwap(params: SwapParams): Promise<SwapResult> {
-    const { fromToken, toToken, useSmartAccount } = params
+    const { useSmartAccount } = params
     const chainId = this.walletManager.getChainId()
     const userAddress = this.walletManager.getAddress()
     const provider = this.walletManager.getProvider()
@@ -199,7 +189,7 @@ export class DEXAggregator extends EventEmitter {
           clearInterval(checkBundle)
           clearTimeout(timeout)
           resolve({
-            txHash: currentIntent.txHash || '',
+            txHash: intent.id, // Use intent ID as txHash for mock
             bundleId: intent.id
           })
         } else if (currentIntent?.status === 'failed') {
@@ -227,33 +217,24 @@ export class DEXAggregator extends EventEmitter {
     }
 
     const swapResponse = await getOKXSwap(swapArgs)
-    const txData = swapResponse.data[0].tx
+    const txData = swapResponse.tx
 
-    // Check if token approval is needed
-    if (fromToken.address && fromToken.address !== ethers.ZeroAddress) {
-      const needsApproval = await this.checkTokenApproval(
-        fromToken,
-        txData.to,
-        amount
-      )
-
-      if (needsApproval) {
-        await this.approveToken(fromToken, txData.to, amount)
-      }
+    // Check and approve token if needed
+    const allowanceTarget = txData.to
+    const isApproved = await this.checkTokenApproval(fromToken, allowanceTarget, amount)
+    if (!isApproved) {
+      await this.approveToken(fromToken, allowanceTarget, amount)
     }
 
-    // Execute swap transaction
-    const txRequest: ethers.TransactionRequest = {
+    // Execute transaction using wallet manager
+    const txHash = await this.walletManager.sendTransaction({
       to: txData.to,
       data: txData.data,
-      value: txData.value || '0',
-      gasLimit: txData.gas,
-      gasPrice: txData.gasPrice
-    }
+      value: txData.value || '0x0',
+      gasLimit: txData.gas || undefined
+    })
 
-    const txHash = await this.walletManager.sendTransaction(txRequest)
-    this.emit('swapExecuted', { txHash })
-
+    this.emit('swapCompleted', { txHash })
     return { txHash }
   }
 
@@ -262,26 +243,23 @@ export class DEXAggregator extends EventEmitter {
     spender: string,
     amount: string
   ): Promise<boolean> {
-    const provider = this.walletManager.getProvider()
-    const userAddress = this.walletManager.getAddress()
+    if (token.address === ethers.ZeroAddress) return true
 
-    if (!provider || !userAddress) return false
+    const signer = this.walletManager.getSigner()
+    if (!signer) return false
 
-    try {
-      const tokenContract = new ethers.Contract(
-        token.address,
-        ['function allowance(address owner, address spender) view returns (uint256)'],
-        provider
-      )
+    const erc20 = new ethers.Contract(
+      token.address,
+      [
+        'function allowance(address owner, address spender) view returns (uint256)'
+      ],
+      signer
+    )
 
-      const allowance = await tokenContract.allowance(userAddress, spender)
-      const requiredAmount = ethers.parseUnits(amount, token.decimals)
-
-      return allowance < requiredAmount
-    } catch (error) {
-      console.error('Failed to check token approval:', error)
-      return true // Assume approval needed on error
-    }
+    const owner = await signer.getAddress()
+    const allowance = await erc20.allowance(owner, spender)
+    const amountWei = ethers.parseUnits(amount, token.decimals)
+    return allowance >= amountWei
   }
 
   private async approveToken(
@@ -289,37 +267,30 @@ export class DEXAggregator extends EventEmitter {
     spender: string,
     amount: string
   ): Promise<void> {
-    const signer = this.walletManager.getSigner()!
-    await approveAllowance(
-      token.address,
-      spender,
-      amount,
-      signer
-    )
+    const signer = this.walletManager.getSigner()
+    if (!signer) throw new Error('Signer not available')
+
+    await approveAllowance(token.address!, spender, amount, signer)
   }
 
   private calculatePriceImpact(
     fromAmount: string,
     toAmount: string
   ): string {
-    // Simplified price impact calculation
-    // In a real implementation, you'd use market prices
     try {
-      const fromValue = parseFloat(fromAmount)
-      const toValue = parseFloat(toAmount)
-      
-      if (fromValue === 0 || toValue === 0) return '0'
-      
-      // This is a placeholder - real price impact needs market data
-      const impact = Math.abs((fromValue - toValue) / fromValue) * 100
+      const from = parseFloat(fromAmount)
+      const to = parseFloat(toAmount)
+      if (!isFinite(from) || from <= 0) return '0.00'
+      const rate = to / from
+      const impact = Math.max(0, (1 - rate) * 100)
       return impact.toFixed(2)
     } catch {
-      return '0'
+      return '0.00'
     }
   }
 
   getAvailableTokens(): Token[] {
-    return [...this.availableTokens]
+    return this.availableTokens
   }
 
   getCurrentQuote(): SwapQuote | null {
@@ -328,28 +299,28 @@ export class DEXAggregator extends EventEmitter {
 
   async getTokenBalance(token: Token): Promise<string> {
     const provider = this.walletManager.getProvider()
-    const userAddress = this.walletManager.getAddress()
+    const address = this.walletManager.getAddress()
+    if (!provider || !address) return '0'
 
-    if (!provider || !userAddress) return '0'
-
-    try {
-      if (!token.address || token.address === ethers.ZeroAddress) {
-        // Native token (ETH, MATIC, etc.)
-        const balance = await provider.getBalance(userAddress)
-        return ethers.formatEther(balance)
-      } else {
-        // ERC20 token
-        const tokenContract = new ethers.Contract(
-          token.address,
-          ['function balanceOf(address) view returns (uint256)'],
-          provider
-        )
-        const balance = await tokenContract.balanceOf(userAddress)
-        return ethers.formatUnits(balance, token.decimals)
-      }
-    } catch (error) {
-      console.error('Failed to get token balance:', error)
-      return '0'
+    if (token.address === ethers.ZeroAddress) {
+      const balance = await provider.getBalance(address)
+      return ethers.formatEther(balance)
     }
+
+    const erc20 = new ethers.Contract(
+      token.address,
+      [
+        'function balanceOf(address owner) view returns (uint256)',
+        'function decimals() view returns (uint8)'
+      ],
+      provider
+    )
+
+    const [balance, decimals] = await Promise.all([
+      erc20.balanceOf(address),
+      erc20.decimals()
+    ])
+
+    return ethers.formatUnits(balance, decimals)
   }
 }

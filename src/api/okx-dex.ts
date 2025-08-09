@@ -114,10 +114,25 @@ export async function getOKXQuote(args: OKXQuoteArgs): Promise<TokenQuote> {
       estimatedGas: data.estimateGasFee,
       route: data.dexRouterList.map(router => ({
         protocol: router.router,
-        percentage: parseFloat(router.routerPercent)
+        percentage: parseFloat(router.routerPercent),
+        fromToken: {
+          address: data.fromToken.tokenContractAddress,
+          symbol: data.fromToken.tokenSymbol,
+          decimals: 18,
+          name: data.fromToken.tokenSymbol,
+          chainId: args.chainId
+        },
+        toToken: {
+          address: data.toToken.tokenContractAddress,
+          symbol: data.toToken.tokenSymbol,
+          decimals: 18,
+          name: data.toToken.tokenSymbol,
+          chainId: args.chainId
+        }
       })),
-      priceImpact: '0', // Not provided by OKX API
-      timestamp: Date.now()
+      priceImpact: 0, // Not provided by OKX API
+      rate: (parseFloat(data.toTokenAmount) / Math.max(parseFloat(data.fromTokenAmount), 1e-18)).toString(),
+      validUntil: Date.now() + 60 * 1000
     }
   } catch (error) {
     console.error('OKX quote error:', error)

@@ -1,11 +1,11 @@
-import { EventEmitter } from 'events'
+import { SimpleEventEmitter } from '@/utils/emitter'
 import type { UserOperation, Bundle } from '../libs/erc4337/types'
 
 /**
  * Bundle Tracker
  * Monitors and displays MEV protection and transaction bundling status
  */
-export class BundleTracker extends EventEmitter {
+export class BundleTracker extends SimpleEventEmitter {
   private container: HTMLElement | null = null
   private activeBundles: Map<string, Bundle> = new Map()
   private userOperations: Map<string, UserOperation> = new Map()

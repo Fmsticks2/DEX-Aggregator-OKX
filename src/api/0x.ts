@@ -90,10 +90,25 @@ export async function get0xQuote(args: ZeroXQuoteArgs, chainId: number = 1): Pro
       estimatedGas: data.estimatedGas,
       route: data.sources.map(source => ({
         protocol: source.name,
-        percentage: parseFloat(source.proportion) * 100
+        percentage: parseFloat(source.proportion) * 100,
+        fromToken: {
+          address: data.sellTokenAddress,
+          symbol: '',
+          decimals: 18,
+          name: '',
+          chainId
+        },
+        toToken: {
+          address: data.buyTokenAddress,
+          symbol: '',
+          decimals: 18,
+          name: '',
+          chainId
+        }
       })),
-      priceImpact: data.estimatedPriceImpact,
-      timestamp: Date.now()
+      priceImpact: parseFloat(data.estimatedPriceImpact),
+      rate: data.price,
+      validUntil: Date.now() + 60 * 1000
     }
   } catch (error) {
     console.error('0x quote error:', error)
@@ -104,7 +119,7 @@ export async function get0xQuote(args: ZeroXQuoteArgs, chainId: number = 1): Pro
 /**
  * Get swap transaction data from 0x API
  */
-export async function get0xSwap(args: ZeroXQuoteArgs, chainId: number = 1): Promise<any> {
+export async function get0xSwap(args: ZeroXQuoteArgs): Promise<any> {
   try {
     const params = new URLSearchParams()
     

@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { EventEmitter } from 'events'
+import { SimpleEventEmitter } from '@/utils/emitter'
 import { SUPPORTED_CHAINS, ChainConfig } from '../config/chains'
 
 export interface WalletState {
@@ -29,7 +29,7 @@ export interface SupportedChain {
  * Wallet Manager using pure ethers.js
  * Handles wallet connections, network switching, and account management
  */
-export class WalletManager extends EventEmitter {
+export class WalletManager extends SimpleEventEmitter {
   private state: WalletState = {
     isConnected: false,
     address: null,
