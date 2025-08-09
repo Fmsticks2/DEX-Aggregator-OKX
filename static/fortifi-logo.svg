@@ -1,0 +1,53 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#5B73FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF00FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00BFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8A2BE2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield outline -->
+  <path d="M32 4L48 10C48 10 48 24 48 32C48 44 32 58 32 58C32 58 16 44 16 32C16 24 16 10 16 10L32 4Z" 
+        stroke="url(#shieldGradient)" 
+        stroke-width="2" 
+        fill="none"/>
+  
+  <!-- Swap arrows -->
+  <!-- Left arrow (curved down) -->
+  <path d="M24 20C24 20 20 20 20 24C20 28 24 28 24 28L28 28" 
+        stroke="url(#arrowGradient)" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  <path d="M26 26L28 28L26 30" 
+        stroke="url(#arrowGradient)" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- Dollar sign -->
+  <path d="M32 18V22M32 42V46M28 22C28 20.9 28.9 20 30 20H34C35.1 20 36 20.9 36 22C36 23.1 35.1 24 34 24H30C28.9 24 28 24.9 28 26C28 27.1 28.9 28 30 28H34C35.1 28 36 28.9 36 30C36 31.1 35.1 32 34 32H30C28.9 32 28 31.1 28 30" 
+        stroke="url(#arrowGradient)" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <!-- Right arrow (curved up) -->
+  <path d="M40 44C40 44 44 44 44 40C44 36 40 36 40 36L36 36" 
+        stroke="url(#arrowGradient)" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  <path d="M38 38L36 36L38 34" 
+        stroke="url(#arrowGradient)" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>

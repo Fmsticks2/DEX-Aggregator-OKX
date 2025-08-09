@@ -1,0 +1,39 @@
+{
+  "swap": {
+    "title": "Swap",
+    "subtitle": "Trade tokens in an instant",
+    "estimate-gas": "Estimated Gas",
+    "trade": "Trade",
+    "trading": "Trading…",
+    "ongoing": "Trade is on the way. Click <a href=\"{txUrl}\" target=\"_blank\"><u>here</u></a> to view the state of the transaction",
+    "reverted": "The trade was reverted. Click <a href=\"{txUrl}\" target=\"_blank\"><u>here</u></a> to view the failed transaction",
+    "success": "Trade betwen <b>{from}</b> and <b>{to}</b> was successful",
+    "error": {
+      "price": "There was an error fetching the price",
+      "trading": "There was an error trading the tokens"
+    }
+  },
+  "token-amount": {
+    "balance": "Balance",
+    "getting-price": "Getting price…",
+    "insufficient-balance": "Insifficient balance",
+    "error-fetching-balance": "There was an error fetching the balance"
+  },
+  "token-selector": {
+    "select": "Select",
+    "token": "Token",
+    "loading": "Loading tokens…",
+    "search": "Search token by name, symbol or address",
+    "no-tokens": "No tokens founds on {chain}",
+    "see-more": "See more…"
+  },
+  "add-token": {
+    "tooltip": "Add token to MetaMask wallet",
+    "added": "Token added to your wallet",
+    "failed": "Failed to add token to your wallet"
+  },
+  "supported-chains": {
+    "title": "List of Supported Chains",
+    "subtitle": "Please, select one of our supported chain"
+  }
+}
