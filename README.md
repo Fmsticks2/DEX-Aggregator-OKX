@@ -71,6 +71,16 @@ WALLET_CONNECT_VERIFICATION_CODE=your_verification_code_here
 
 # 0x Protocol API Key (optional, for enhanced features)
 VITE_ZERO_X_API_KEY=your_0x_api_key_here
+
+# Private Keys (Keep these secure and never commit to version control)
+# XLayer Private Key - Used for XLayer network operations
+XLAYER_PRIVATE_KEY=your_xlayer_private_key_here
+
+# Ethereum Private Key - Used for Ethereum network operations
+ETHEREUM_PRIVATE_KEY=your_ethereum_private_key_here
+
+# Bundler Private Key - Used for ERC-4337 smart account operations
+BUNDLER_PRIVATE_KEY=your_bundler_private_key_here
 ```
 
 ### Getting API Keys

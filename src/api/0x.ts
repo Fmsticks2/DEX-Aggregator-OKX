@@ -63,7 +63,7 @@ export async function get0xQuote(args: ZeroXQuoteArgs, chainId: number = 1): Pro
       `${ZERO_X_API_BASE}/swap/v1/quote?${params.toString()}`,
       {
         headers: {
-          '0x-api-key': process.env.VITE_ZERO_X_API_KEY || ''
+          '0x-api-key': import.meta.env.VITE_ZERO_X_API_KEY || ''
         }
       }
     )
@@ -133,7 +133,7 @@ export async function get0xSwap(args: ZeroXQuoteArgs): Promise<any> {
       `${ZERO_X_API_BASE}/swap/v1/quote?${params.toString()}`,
       {
         headers: {
-          '0x-api-key': process.env.VITE_ZERO_X_API_KEY || ''
+          '0x-api-key': import.meta.env.VITE_ZERO_X_API_KEY || ''
         }
       }
     )

@@ -38,7 +38,8 @@ export function getPublicClient(chainId?: number): ethers.JsonRpcProvider {
     56: 'https://bsc.llamarpc.com',
     42161: 'https://arbitrum.llamarpc.com',
     10: 'https://optimism.llamarpc.com',
-    8453: 'https://base.llamarpc.com'
+    8453: 'https://base.llamarpc.com',
+    196: 'https://rpc.xlayer.tech'
   }
 
   const currentChainId = chainId || 1
@@ -157,6 +158,17 @@ export async function addChain(chainId: number): Promise<void> {
       },
       rpcUrls: ['https://base.llamarpc.com'],
       blockExplorerUrls: ['https://basescan.org']
+    },
+    196: {
+      chainId: '0xc4',
+      chainName: 'X Layer',
+      nativeCurrency: {
+        name: 'OKB',
+        symbol: 'OKB',
+        decimals: 18
+      },
+      rpcUrls: ['https://rpc.xlayer.tech'],
+      blockExplorerUrls: ['https://www.oklink.com/xlayer']
     }
   }
 

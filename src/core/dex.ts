@@ -5,6 +5,7 @@ import { getBundler, initializeBundler } from '../libs/erc4337/bundler'
 import { Token, POPULAR_TOKENS } from '../libs/token/types'
 import { approveAllowance } from '../utils/token'
 import { getOKXQuote, getOKXSwap, OKXSwapArgs, OKXQuoteArgs } from '../api/okx-dex'
+import { getPrivateKey } from '../utils/env'
 
 export interface SwapParams {
   fromToken: Token
@@ -147,8 +148,9 @@ export class DEXAggregator extends SimpleEventEmitter {
     const provider = this.walletManager.getProvider()
     if (!provider) throw new Error('Provider not available')
 
-    // Demo bundler wallet - in production, use proper key management
-    const bundlerPrivateKey = '0x' + '1'.repeat(64)
+    // Get bundler private key from environment variables with validation
+    const bundlerPrivateKey = getPrivateKey('BUNDLER_PRIVATE_KEY')
+    
     const bundlerWallet = new ethers.Wallet(bundlerPrivateKey)
     const ethersProvider = new ethers.JsonRpcProvider('https://eth.llamarpc.com')
 

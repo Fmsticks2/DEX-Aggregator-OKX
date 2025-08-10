@@ -63,6 +63,15 @@ export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
     rpcUrl: 'https://base.llamarpc.com',
     blockExplorer: 'https://basescan.org',
     logoUrl: 'https://cryptologos.cc/logos/base-base-logo.svg'
+  },
+  196: {
+    id: 196,
+    name: 'X Layer',
+    symbol: 'OKB',
+    decimals: 18,
+    rpcUrl: 'https://rpc.xlayer.tech',
+    blockExplorer: 'https://www.oklink.com/xlayer',
+    logoUrl: 'https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png'
   }
 }
 
