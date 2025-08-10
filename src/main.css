@@ -454,13 +454,68 @@ p {
   transform: rotate(180deg);
 }
 
-/* Swap Button */
+/* Switch Tokens Button */
 .swap-direction {
   display: flex;
   justify-content: center;
   margin: var(--spacing-md) 0;
 }
 
+/* Light mode switch button */
+[data-theme="light"] #switch-tokens {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+[data-theme="light"] #switch-tokens:hover {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  transform: rotate(180deg) scale(1.1);
+  border-color: #3b82f6;
+  box-shadow: 0 8px 15px -3px rgb(59 130 246 / 0.3);
+}
+
+/* Dark/Matrix mode switch button */
+[data-theme="dark"] #switch-tokens,
+[data-theme="matrix"] #switch-tokens {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  border: 2px solid rgba(34, 197, 94, 0.4);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 1));
+  color: #22c55e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 10px rgba(34, 197, 94, 0.1);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+[data-theme="dark"] #switch-tokens:hover,
+[data-theme="matrix"] #switch-tokens:hover {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: black;
+  transform: rotate(180deg) scale(1.1);
+  border-color: #22c55e;
+  box-shadow: 0 0 25px rgba(34, 197, 94, 0.4), inset 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+/* Legacy swap direction button styling for compatibility */
 .swap-direction-btn {
   width: 2.5rem;
   height: 2.5rem;
@@ -599,6 +654,53 @@ p {
   font-size: 0.875rem;
   font-weight: 500;
   color: #22c55e;
+}
+
+/* Token Search Modal */
+#token-search {
+  transition: all 0.2s ease;
+}
+
+#token-search:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+[data-theme="dark"] #token-search,
+[data-theme="matrix"] #token-search {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+[data-theme="dark"] #token-search:focus,
+[data-theme="matrix"] #token-search:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+#token-list:empty::after {
+  content: "No tokens found. Try searching by name, symbol, or contract address.";
+  display: block;
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-base-content-60);
+  font-style: italic;
+}
+
+.token-list-item {
+  transition: all 0.2s ease;
+}
+
+.token-list-item:hover {
+  transform: translateX(4px);
+}
+
+[data-theme="dark"] .token-list-item:hover,
+[data-theme="matrix"] .token-list-item:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid #22c55e;
 }
 
 .quote-value.positive {

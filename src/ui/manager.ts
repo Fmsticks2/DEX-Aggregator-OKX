@@ -328,17 +328,21 @@ export class UIManager {
 
   private createTokenListItem(token: Token): HTMLElement {
     const item = document.createElement('div')
-    item.className = 'flex items-center space-x-3 p-3 hover:bg-base-200 cursor-pointer rounded-lg'
+    item.className = 'token-list-item flex items-center space-x-3 p-3 hover:bg-base-200 cursor-pointer rounded-lg transition-all duration-200'
+    
+    // Truncate address for display
+    const truncatedAddress = `${token.address.slice(0, 6)}...${token.address.slice(-4)}`
     
     item.innerHTML = `
       <div class="avatar">
         <div class="w-8 h-8 rounded-full">
-          <img src="${token.logoURI || '/default-token.svg'}" alt="${token.symbol}" />
+          <img src="${token.logoURI || '/default-token.svg'}" alt="${token.symbol}" onerror="this.src='/default-token.svg'" />
         </div>
       </div>
       <div class="flex-1">
         <div class="font-medium">${token.symbol}</div>
         <div class="text-sm text-base-content/60">${token.name}</div>
+        <div class="text-xs text-base-content/40 font-mono">${truncatedAddress}</div>
       </div>
       <div class="text-right">
         <div class="font-medium" data-token-balance="${token.address}">0</div>
@@ -383,12 +387,19 @@ export class UIManager {
     } else {
       const lowerQuery = query.toLowerCase().trim()
       
-      // First filter by name and symbol
-      filteredTokens = tokens.filter(token => 
-        token.name.toLowerCase().includes(lowerQuery) ||
-        token.symbol.toLowerCase().includes(lowerQuery) ||
+      // Enhanced search: prioritize exact matches, then partial matches
+      const exactMatches = tokens.filter(token => 
+        token.symbol.toLowerCase() === lowerQuery ||
         token.address.toLowerCase() === lowerQuery
       )
+      
+      const partialMatches = tokens.filter(token => 
+        token.symbol.toLowerCase().includes(lowerQuery) ||
+        token.name.toLowerCase().includes(lowerQuery) ||
+        token.address.toLowerCase().includes(lowerQuery)
+      ).filter(token => !exactMatches.includes(token))
+      
+      filteredTokens = [...exactMatches, ...partialMatches]
 
       // If no matches and query looks like an address, try to fetch token info
       if (filteredTokens.length === 0 && this.isValidAddress(lowerQuery)) {
