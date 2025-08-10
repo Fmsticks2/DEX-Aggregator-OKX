@@ -47,20 +47,59 @@ export class WalletManager extends SimpleEventEmitter {
   async initialize(): Promise<void> {
     // Check if wallet was previously connected
     const wasConnected = localStorage.getItem('wallet-connected')
-    if (wasConnected === 'true' && this.isMetaMaskAvailable()) {
+    if (wasConnected === 'true' && this.isWalletAvailable()) {
       await this.connectWallet()
     }
   }
 
-  private isMetaMaskAvailable(): boolean {
-    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined'
+  private getAvailableProviders(): { name: string; provider: any }[] {
+    const providers = []
+    
+    if (typeof window !== 'undefined') {
+      // Check for OKX Wallet
+      if (window.okxwallet?.ethereum) {
+        providers.push({ name: 'OKX Wallet', provider: window.okxwallet.ethereum })
+      }
+      
+      // Check for MetaMask
+      if (window.ethereum?.isMetaMask) {
+        providers.push({ name: 'MetaMask', provider: window.ethereum })
+      }
+      
+      // Check for generic ethereum provider (fallback)
+      if (window.ethereum && !window.ethereum.isMetaMask && !window.okxwallet) {
+        providers.push({ name: 'Web3 Wallet', provider: window.ethereum })
+      }
+    }
+    
+    return providers
+  }
+
+  private isWalletAvailable(): boolean {
+    return this.getAvailableProviders().length > 0
+  }
+
+  private getPreferredProvider(): any {
+    const providers = this.getAvailableProviders()
+    
+    // Prefer OKX wallet first, then MetaMask, then any other
+    const okxProvider = providers.find(p => p.name === 'OKX Wallet')
+    if (okxProvider) return okxProvider.provider
+    
+    const metamaskProvider = providers.find(p => p.name === 'MetaMask')
+    if (metamaskProvider) return metamaskProvider.provider
+    
+    return providers[0]?.provider || null
   }
 
   private setupEventListeners(): void {
-    if (!this.isMetaMaskAvailable()) return
+    if (!this.isWalletAvailable()) return
+
+    const provider = this.getPreferredProvider()
+    if (!provider) return
 
     // Listen for account changes
-    window.ethereum.on('accountsChanged', (accounts: string[]) => {
+    provider.on('accountsChanged', (accounts: string[]) => {
       if (accounts.length === 0) {
         this.disconnect()
       } else {
@@ -69,24 +108,30 @@ export class WalletManager extends SimpleEventEmitter {
     })
 
     // Listen for chain changes
-    window.ethereum.on('chainChanged', (chainId: string) => {
+    provider.on('chainChanged', (chainId: string) => {
       this.handleChainChange(parseInt(chainId, 16))
     })
 
     // Listen for disconnect
-    window.ethereum.on('disconnect', () => {
+    provider.on('disconnect', () => {
       this.disconnect()
     })
   }
 
   async connectWallet(): Promise<void> {
-    if (!this.isMetaMaskAvailable()) {
-      throw new Error('MetaMask is not installed')
+    const eip1193 = this.getPreferredProvider()
+    if (!eip1193) {
+      const availableWallets = this.getAvailableProviders().map(p => p.name).join(', ')
+      if (availableWallets) {
+        throw new Error(`No compatible wallet found. Available: ${availableWallets}`)
+      } else {
+        throw new Error('No Web3 wallet detected. Please install MetaMask, OKX Wallet, or another compatible wallet.')
+      }
     }
 
     try {
       // Request account access
-      const accounts = await window.ethereum.request({
+      const accounts = await eip1193.request({
         method: 'eth_requestAccounts'
       })
 
@@ -95,7 +140,7 @@ export class WalletManager extends SimpleEventEmitter {
       }
 
       // Create provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      const provider = new ethers.BrowserProvider(eip1193)
       const signer = await provider.getSigner()
       const address = await signer.getAddress()
       const network = await provider.getNetwork()
@@ -138,7 +183,7 @@ export class WalletManager extends SimpleEventEmitter {
   }
 
   async switchNetwork(chainId: number): Promise<void> {
-    if (!this.isMetaMaskAvailable() || !this.state.isConnected) {
+    if (!this.isWalletAvailable() || !this.state.isConnected) {
       throw new Error('Wallet not connected')
     }
 
@@ -148,8 +193,10 @@ export class WalletManager extends SimpleEventEmitter {
     }
 
     try {
+      const eip1193 = this.getPreferredProvider()
+      if (!eip1193) throw new Error('Provider not available')
       // Try to switch to the network
-      await window.ethereum.request({
+      await eip1193.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${chainId.toString(16)}` }]
       })
@@ -164,7 +211,9 @@ export class WalletManager extends SimpleEventEmitter {
   }
 
   private async addNetwork(chain: ChainConfig): Promise<void> {
-    await window.ethereum.request({
+    const eip1193 = this.getPreferredProvider()
+    if (!eip1193) throw new Error('Provider not available')
+    await eip1193.request({
       method: 'wallet_addEthereumChain',
       params: [{
         chainId: `0x${chain.id.toString(16)}`,
@@ -254,5 +303,6 @@ export class WalletManager extends SimpleEventEmitter {
 declare global {
   interface Window {
     ethereum?: any
+    okxwallet?: { ethereum?: any }
   }
 }

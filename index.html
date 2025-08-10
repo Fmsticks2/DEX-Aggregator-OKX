@@ -120,6 +120,39 @@
           <button>close</button>
         </form>
       </div>
+
+      <!-- Settings Modal -->
+      <div id="settings-modal" class="modal">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg mb-4">Settings</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="label">
+                <span class="label-text">Slippage Tolerance (%)</span>
+              </label>
+              <input 
+                id="slippage-input" 
+                type="number" 
+                min="0.1" 
+                max="50" 
+                step="0.1" 
+                placeholder="0.5" 
+                class="input input-bordered w-full" 
+              />
+              <div class="label">
+                <span class="label-text-alt">Recommended: 0.5% - 1.0%</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-action">
+            <button id="settings-save" class="btn btn-primary">Save</button>
+            <button id="settings-cancel" class="btn">Cancel</button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

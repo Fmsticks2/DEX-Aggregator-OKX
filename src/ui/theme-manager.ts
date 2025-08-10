@@ -3,7 +3,7 @@
  * Handles dark/light mode and UI theming
  */
 export class ThemeManager {
-  private currentTheme: 'light' | 'dark' = 'dark'
+  private currentTheme: 'light' | 'dark' | 'matrix' = 'matrix'
   private readonly THEME_KEY = 'dex-theme'
   private readonly THEMES = {
     light: {
@@ -15,6 +15,11 @@ export class ThemeManager {
       name: 'dark',
       displayName: 'Dark',
       icon: '🌙'
+    },
+    matrix: {
+      name: 'matrix',
+      displayName: 'Matrix',
+      icon: '🔋'
     }
   }
 
@@ -30,43 +35,47 @@ export class ThemeManager {
 
   private loadTheme(): void {
     // Check localStorage first
-    const savedTheme = localStorage.getItem(this.THEME_KEY) as 'light' | 'dark'
-    
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-      this.currentTheme = savedTheme
+    const savedTheme = localStorage.getItem(this.THEME_KEY)
+
+    if (savedTheme && typeof savedTheme === 'string') {
+      // accept any custom theme string
+      this.currentTheme = (savedTheme as any)
     } else {
       // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      this.currentTheme = prefersDark ? 'dark' : 'light'
+      this.currentTheme = (prefersDark ? 'matrix' : 'light') as any
     }
   }
 
   private applyTheme(): void {
     // Apply theme to document
-    document.documentElement.setAttribute('data-theme', this.currentTheme)
-    document.documentElement.classList.remove('light', 'dark')
-    document.documentElement.classList.add(this.currentTheme)
-    
+    document.documentElement.setAttribute('data-theme', this.currentTheme as any)
+    document.documentElement.classList.remove('light', 'dark', 'matrix')
+    document.documentElement.classList.add(this.currentTheme as any)
+
     // Update meta theme-color for mobile browsers
     this.updateMetaThemeColor()
-    
+
     // Save to localStorage
-    localStorage.setItem(this.THEME_KEY, this.currentTheme)
+    localStorage.setItem(this.THEME_KEY, this.currentTheme as any)
   }
 
   private updateMetaThemeColor(): void {
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-    const colors = {
+    const colors: Record<string, string> = {
       light: '#ffffff',
-      dark: '#1f2937'
+      dark: '#0a0a0a',
+      matrix: '#000000'
     }
+
+    const current = colors[this.currentTheme as any] || '#000000'
     
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', colors[this.currentTheme])
+      metaThemeColor.setAttribute('content', current)
     } else {
       const meta = document.createElement('meta')
       meta.name = 'theme-color'
-      meta.content = colors[this.currentTheme]
+      meta.content = current
       document.head.appendChild(meta)
     }
   }
@@ -123,7 +132,7 @@ export class ThemeManager {
     }))
   }
 
-  setTheme(theme: 'light' | 'dark'): void {
+  setTheme(theme: 'light' | 'dark' | 'matrix'): void {
     if (theme !== this.currentTheme) {
       this.currentTheme = theme
       this.applyTheme()
@@ -141,7 +150,7 @@ export class ThemeManager {
     }
   }
 
-  getCurrentTheme(): 'light' | 'dark' {
+  getCurrentTheme(): 'light' | 'dark' | 'matrix' {
     return this.currentTheme
   }
 
@@ -191,17 +200,30 @@ export class ThemeManager {
         secondary: '#9ca3af',
         accent: '#34d399',
         neutral: '#d1d5db',
-        base100: '#1f2937',
-        base200: '#374151',
-        base300: '#4b5563',
+        base100: '#0a0a0a',
+        base200: '#111111',
+        base300: '#1a1a1a',
         info: '#38bdf8',
-        success: '#4ade80',
+        success: '#22c55e',
         warning: '#fbbf24',
         error: '#f87171'
+      },
+      matrix: {
+        primary: '#16a34a',
+        secondary: '#22c55e',
+        accent: '#10b981',
+        neutral: '#9ca3af',
+        base100: '#000000',
+        base200: '#0a0a0a',
+        base300: '#111111',
+        info: '#34d399',
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444'
       }
-    }
+    } as any
     
-    return colors[this.currentTheme]
+    return (colors as any)[this.currentTheme]
   }
 
   // Animation preferences

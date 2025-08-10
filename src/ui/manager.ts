@@ -38,6 +38,7 @@ export class UIManager {
     this.cacheElements()
     this.setupEventListeners()
     this.setupServiceListeners()
+    this.loadPreferences()
     this.updateUI()
     console.log('✅ UI Manager initialized')
   }
@@ -48,7 +49,9 @@ export class UIManager {
       'from-token-selector', 'to-token-selector', 'switch-tokens',
       'smart-account-toggle', 'swap-btn', 'swap-btn-text', 'swap-loading',
       'from-balance', 'to-balance', 'tx-info', 'estimated-gas', 'price-impact',
-      'token-selector-modal', 'token-search', 'token-list'
+      'token-selector-modal', 'token-search', 'token-list',
+      // Settings
+      'settings-btn', 'settings-modal', 'slippage-input', 'settings-save', 'settings-cancel'
     ]
 
     elementIds.forEach(id => {
@@ -56,7 +59,7 @@ export class UIManager {
       if (element) {
         this.elements[id] = element
       } else {
-        console.warn(`Element with id '${id}' not found`)
+        // console.warn(`Element with id '${id}' not found`)
       }
     })
   }
@@ -110,6 +113,58 @@ export class UIManager {
         this.filterTokens(tokenSearch.value)
       }, 300))
     }
+
+    // Modal backdrop close
+    const modal = this.elements['token-selector-modal']
+    if (modal) {
+      const backdrop = modal.querySelector('.modal-backdrop') as HTMLElement | null
+      backdrop?.addEventListener('click', () => this.closeTokenSelector())
+      // Close on ESC
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') this.closeTokenSelector()
+      })
+    }
+
+    // Settings button
+    const settingsBtn = this.elements['settings-btn']
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => this.openSettings())
+    }
+
+    // Settings modal actions
+    const settingsModal = this.elements['settings-modal']
+    const saveBtn = this.elements['settings-save']
+    const cancelBtn = this.elements['settings-cancel']
+    const slippageInput = this.elements['slippage-input'] as HTMLInputElement
+
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).classList.contains('modal-backdrop')) {
+          this.closeSettings()
+        }
+      })
+    }
+
+    saveBtn?.addEventListener('click', () => {
+      if (slippageInput && slippageInput.value) {
+        const val = parseFloat(slippageInput.value)
+        if (!isNaN(val) && val > 0 && val <= 50) {
+          this.slippage = val
+          localStorage.setItem('dex-slippage', String(this.slippage))
+          this.notificationManager.showSuccess(`Slippage set to ${this.slippage}%`)
+        } else {
+          this.notificationManager.showError('Enter a valid slippage (0-50)')
+          return
+        }
+      }
+      this.closeSettings()
+      // Recalculate quote if possible
+      if (this.selectedFromToken && this.selectedToToken && this.fromAmount) {
+        this.handleAmountChange(this.fromAmount)
+      }
+    })
+
+    cancelBtn?.addEventListener('click', () => this.closeSettings())
   }
 
   private setupServiceListeners(): void {
@@ -204,11 +259,19 @@ export class UIManager {
       const searchInput = this.elements['token-search'] as HTMLInputElement
       if (searchInput) {
         searchInput.value = ''
-        searchInput.focus()
+        setTimeout(() => searchInput.focus(), 100) // Delay to ensure modal is fully opened
       }
       
       // Show all tokens
       this.filterTokens('')
+    }
+  }
+
+  private closeTokenSelector(): void {
+    const modal = this.elements['token-selector-modal']
+    if (modal) {
+      modal.classList.remove('modal-open')
+      modal.removeAttribute('data-token-type')
     }
   }
 
@@ -303,7 +366,7 @@ export class UIManager {
     this.loadTokenBalances()
     
     // Close modal
-    modal?.classList.remove('modal-open')
+    this.closeTokenSelector()
     
     // Update quote if both tokens selected
     if (this.selectedFromToken && this.selectedToToken && this.fromAmount) {
@@ -311,14 +374,54 @@ export class UIManager {
     }
   }
 
-  private filterTokens(query: string): void {
+  private async filterTokens(query: string): Promise<void> {
     const tokens = this.dexAggregator.getAvailableTokens()
-    const filteredTokens = tokens.filter(token => 
-      token.name.toLowerCase().includes(query.toLowerCase()) ||
-      token.symbol.toLowerCase().includes(query.toLowerCase())
-    )
+    let filteredTokens = []
+
+    if (!query.trim()) {
+      filteredTokens = tokens
+    } else {
+      const lowerQuery = query.toLowerCase().trim()
+      
+      // First filter by name and symbol
+      filteredTokens = tokens.filter(token => 
+        token.name.toLowerCase().includes(lowerQuery) ||
+        token.symbol.toLowerCase().includes(lowerQuery) ||
+        token.address.toLowerCase() === lowerQuery
+      )
+
+      // If no matches and query looks like an address, try to fetch token info
+      if (filteredTokens.length === 0 && this.isValidAddress(lowerQuery)) {
+        try {
+          const provider = this.walletManager.getProvider()
+          const chainId = this.walletManager.getChainId()
+          
+          if (provider && chainId) {
+            const tokenInfo = await this.fetchTokenInfo(lowerQuery, provider, chainId)
+            if (tokenInfo) {
+              filteredTokens = [tokenInfo]
+            }
+          }
+        } catch (error) {
+          console.log('Token not found or invalid address:', error)
+        }
+      }
+    }
     
     this.populateTokenList(filteredTokens)
+  }
+
+  private isValidAddress(address: string): boolean {
+    return /^0x[a-fA-F0-9]{40}$/.test(address)
+  }
+
+  private async fetchTokenInfo(address: string, provider: any, chainId: number): Promise<Token | null> {
+    try {
+      const { getTokenInfo } = await import('../utils/token')
+      return await getTokenInfo(address, provider, chainId)
+    } catch (error) {
+      return null
+    }
   }
 
   private updateUI(): void {
@@ -478,5 +581,30 @@ export class UIManager {
     const chainId = this.walletManager.getChainId()
     const chain = chainId ? SUPPORTED_CHAINS[chainId] : null
     return chain ? `${chain.blockExplorer}/tx/${txHash}` : '#'
+  }
+
+  private openSettings(): void {
+    const modal = this.elements['settings-modal']
+    if (!modal) return
+    modal.classList.add('modal-open')
+    const slippageInput = this.elements['slippage-input'] as HTMLInputElement
+    if (slippageInput) {
+      slippageInput.value = String(this.slippage)
+      setTimeout(() => slippageInput.focus(), 100)
+    }
+  }
+
+  private closeSettings(): void {
+    const modal = this.elements['settings-modal']
+    if (!modal) return
+    modal.classList.remove('modal-open')
+  }
+
+  private loadPreferences(): void {
+    const savedSlip = localStorage.getItem('dex-slippage')
+    if (savedSlip) {
+      const val = parseFloat(savedSlip)
+      if (!isNaN(val)) this.slippage = val
+    }
   }
 }

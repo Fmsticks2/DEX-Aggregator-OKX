@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 import { SimpleEventEmitter } from '@/utils/emitter'
 import { WalletManager } from './wallet'
 import { getBundler, initializeBundler } from '../libs/erc4337/bundler'
-import { Token } from '../libs/token/types'
+import { Token, POPULAR_TOKENS } from '../libs/token/types'
 import { approveAllowance } from '../utils/token'
 import { getOKXQuote, getOKXSwap, OKXSwapArgs, OKXQuoteArgs } from '../api/okx-dex'
 
@@ -58,6 +58,11 @@ export class DEXAggregator extends SimpleEventEmitter {
     this.walletManager.on('chainChanged', () => {
       this.loadTokens()
     })
+
+    // Ensure tokens load on first connection too
+    this.walletManager.on('connected', () => {
+      this.loadTokens()
+    })
   }
 
   private async loadTokens(): Promise<void> {
@@ -65,8 +70,8 @@ export class DEXAggregator extends SimpleEventEmitter {
     if (!chainId) return
 
     try {
-      // For now, use default tokens from the types file
-      this.availableTokens = Object.values(require('../libs/token/types').POPULAR_TOKENS[chainId] || {})
+      // Use predefined popular tokens per chain
+      this.availableTokens = POPULAR_TOKENS[chainId] || []
       this.emit('tokensLoaded', this.availableTokens)
     } catch (error) {
       console.error('Failed to load tokens:', error)
