@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/fortifi-favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FortiFi - MEV-Resistant DEX Aggregator</title>
+    <meta name="description" content="A decentralized exchange aggregator with MEV protection using ethers.js" />
+    <script type="module" crossorigin src="/assets/main-5d24f2c9.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-821c5c53.js">
+    <link rel="stylesheet" href="/assets/index-26e39ad3.css">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header id="header" class="flex justify-between items-center p-2 md:px-0 md:py-4">
+        <div class="flex items-center space-x-2">
+          <div class="mask mask-squircle">
+            <img src="/fortifi-logo.svg" alt="logo" title="FortiFi" />
+          </div>
+          <h1 class="text-lg font-medium">
+            <span>Forti</span>
+            <span class="hidden md:inline">Fi</span>
+          </h1>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div id="chain-selector"></div>
+          <button id="connect-wallet" class="btn btn-primary">Connect Wallet</button>
+          <button id="theme-toggle" class="btn btn-ghost btn-circle">🌙</button>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex justify-center flex-1 m-0 md:mt-12">
+        <div id="swap-container" class="w-full rounded-none md:rounded-2xl md:shadow-xl md:w-[600px] dark:bg-black p-6">
+          <!-- Swap Interface -->
+          <div class="space-y-4">
+            <!-- From Token -->
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">From</span>
+                <span id="from-balance" class="text-sm text-base-content/60">Balance: 0</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input id="from-amount" type="number" placeholder="0.0" class="input input-ghost text-2xl font-bold flex-1" />
+                <button id="from-token-selector" class="btn btn-ghost">
+                  <span>Select Token</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Switch Button -->
+            <div class="flex justify-center">
+              <button id="switch-tokens" class="btn btn-circle btn-ghost">
+                ↕️
+              </button>
+            </div>
+
+            <!-- To Token -->
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">To</span>
+                <span id="to-balance" class="text-sm text-base-content/60">Balance: 0</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input id="to-amount" type="number" placeholder="0.0" class="input input-ghost text-2xl font-bold flex-1" readonly />
+                <button id="to-token-selector" class="btn btn-ghost">
+                  <span>Select Token</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-2">
+                <input id="smart-account-toggle" type="checkbox" class="checkbox" />
+                <label for="smart-account-toggle" class="text-sm">Use Smart Account (MEV Protection)</label>
+              </div>
+              <button id="settings-btn" class="btn btn-ghost btn-sm">⚙️</button>
+            </div>
+
+            <!-- Swap Button -->
+            <button id="swap-btn" class="btn btn-primary w-full" disabled>
+              <span id="swap-btn-text">Connect Wallet</span>
+              <span id="swap-loading" class="loading loading-spinner loading-sm hidden"></span>
+            </button>
+
+            <!-- Transaction Info -->
+            <div id="tx-info" class="text-sm text-base-content/60 space-y-1 hidden">
+              <div class="flex justify-between">
+                <span>Estimated Gas:</span>
+                <span id="estimated-gas">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Price Impact:</span>
+                <span id="price-impact">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bundle Tracker -->
+      <div id="bundle-tracker" class="fixed bottom-4 right-4 hidden">
+        <!-- Bundle tracking UI will be inserted here -->
+      </div>
+
+      <!-- Notifications -->
+      <div id="notifications" class="toast toast-top toast-end">
+        <!-- Toast notifications will be inserted here -->
+      </div>
+
+      <!-- Modals -->
+      <div id="token-selector-modal" class="modal">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg mb-4">Select Token</h3>
+          <input id="token-search" type="text" placeholder="Search tokens..." class="input input-bordered w-full mb-4" />
+          <div id="token-list" class="max-h-96 overflow-y-auto space-y-2">
+            <!-- Token list will be populated here -->
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      </div>
+    </div>
+
+    
+  </body>
+</html>
