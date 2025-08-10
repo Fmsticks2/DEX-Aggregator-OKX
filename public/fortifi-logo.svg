@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <!-- Background -->
+  <rect width="240" height="60" rx="8" fill="url(#gradient-bg)" />
+  
+  <!-- Shield Icon -->
+  <g transform="translate(12, 10)">
+    <!-- Shield Outline -->
+    <path d="M20 4L20 2C20 1.44772 19.5523 1 19 1H1C0.447715 1 0 1.44772 0 2V4L0 18C0 22 4 26 10 28C16 26 20 22 20 18V4Z" 
+          fill="url(#shield-gradient)" stroke="url(#shield-stroke)" stroke-width="1.5"/>
+    
+    <!-- Inner Pattern -->
+    <path d="M6 12L9 15L14 8" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Circuit Pattern -->
+    <circle cx="4" cy="6" r="1" fill="#60A5FA" opacity="0.6"/>
+    <circle cx="16" cy="6" r="1" fill="#60A5FA" opacity="0.6"/>
+    <line x1="4" y1="6" x2="6" y2="8" stroke="#60A5FA" stroke-width="0.5" opacity="0.6"/>
+    <line x1="16" y1="6" x2="14" y2="8" stroke="#60A5FA" stroke-width="0.5" opacity="0.6"/>
+  </g>
+  
+  <!-- Text "FortiFi" -->
+  <g transform="translate(50, 20)">
+    <!-- Fort -->
+    <text x="0" y="20" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="700" fill="url(#text-gradient)">
+      Forti
+    </text>
+    <!-- Fi -->
+    <text x="74" y="20" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="700" fill="url(#accent-gradient)">
+      Fi
+    </text>
+  </g>
+  
+  <!-- Subtitle -->
+  <text x="52" y="45" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="500" fill="#94A3B8" letter-spacing="0.5px">
+    DEX AGGREGATOR
+  </text>
+  
+  <!-- Decorative Elements -->
+  <g opacity="0.4">
+    <!-- Network nodes -->
+    <circle cx="200" cy="15" r="2" fill="#3B82F6"/>
+    <circle cx="210" cy="25" r="1.5" fill="#06B6D4"/>
+    <circle cx="220" cy="35" r="1" fill="#8B5CF6"/>
+    
+    <!-- Connection lines -->
+    <line x1="200" y1="15" x2="210" y2="25" stroke="url(#line-gradient)" stroke-width="1"/>
+    <line x1="210" y1="25" x2="220" y2="35" stroke="url(#line-gradient)" stroke-width="1"/>
+  </g>
+  
+  <!-- Gradients -->
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="gradient-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E293B;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shield gradient -->
+    <linearGradient id="shield-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1D4ED8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shield stroke -->
+    <linearGradient id="shield-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Text gradient -->
+    <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F8FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E2E8F0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Accent gradient for "Fi" -->
+    <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Line gradient -->
+    <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+</svg>
