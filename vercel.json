@@ -4,13 +4,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "functions": {
-    "static/**": {
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
-    }
-  },
   "headers": [
     {
       "source": "/assets/(.*)",
